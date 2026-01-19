@@ -1,5 +1,7 @@
 'use client';
 
+export const dynamic = 'force-dynamic';
+
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 
@@ -20,7 +22,7 @@ export default function SuccessPage() {
 
     const send = async () => {
       try {
-        await fetch('/api/send-question', {
+        const res = await fetch('/api/send-question', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -29,6 +31,10 @@ export default function SuccessPage() {
             buyerEmail,
           }),
         });
+
+        if (!res.ok) {
+          throw new Error('Send failed');
+        }
 
         setStatus('Вопрос успешно отправлен ✅');
       } catch (error) {
