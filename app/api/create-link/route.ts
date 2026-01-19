@@ -1,43 +1,31 @@
-export const runtime = 'nodejs';
-
 import { NextResponse } from 'next/server';
-import fs from 'fs';
-import path from 'path';
 import crypto from 'crypto';
 
-type RecipientMap = Record<string, { email: string }>;
+export const runtime = 'nodejs';
 
-export async function POST(request: Request) {
-  const body = await request.json();
-  const email: string | undefined = body?.email;
+export async function POST(req: Request) {
+  try {
+    const body = await req.json();
+    const email = body.email;
 
-  if (!email) {
+    if (!email) {
+      return NextResponse.json(
+        { error: 'Email required' },
+        { status: 400 }
+      );
+    }
+
+    const id = crypto.randomBytes(4).toString('hex');
+
+    // ❗️НИКАКИХ fs / файлов
+    return NextResponse.json({
+      link: `/ask/${id}`,
+    });
+  } catch (e) {
+    console.error('CREATE LINK ERROR:', e);
     return NextResponse.json(
-      { error: 'Email required' },
-      { status: 400 }
+      { error: 'Server error' },
+      { status: 500 }
     );
   }
-
-  const filePath = path.join(process.cwd(), 'data', 'recipients.json');
-
-  let data: RecipientMap = {};
-
-  if (fs.existsSync(filePath)) {
-    try {
-      data = JSON.parse(fs.readFileSync(filePath, 'utf8')) as RecipientMap;
-    } catch {
-      data = {};
-    }
-  }
-
-  const id = crypto.randomBytes(4).toString('hex');
-
-  data[id] = { email };
-
-  fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
-
-  return NextResponse.json({
-    link: `${process.env.BASE_URL}/ask/${id}`,
-  });
 }
-
