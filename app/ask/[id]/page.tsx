@@ -12,30 +12,36 @@ export default function AskPage() {
   const [status, setStatus] = useState('');
 
   const submit = async () => {
-    if (!question.trim() || !email.trim()) return;
+    if (!question.trim() || !email.trim()) {
+      setStatus('Заполните все поля ❌');
+      return;
+    }
 
     setStatus('Переход к оплате...');
 
     try {
       const res = await fetch('/api/create-checkout', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify({
-          id,
-          question,
-          buyerEmail: email,
+          id,        // ← ВАЖНО
+          question,  // ← ВАЖНО
+          email,     // ← ВАЖНО (НЕ buyerEmail)
         }),
       });
 
       const data = await res.json();
 
-      if (data.url) {
+      if (res.ok && data.url) {
         window.location.href = data.url;
       } else {
+        console.error('Checkout error:', data);
         setStatus('Ошибка оплаты ❌');
       }
     } catch (error) {
-      console.error(error);
+      console.error('Request failed:', error);
       setStatus('Ошибка оплаты ❌');
     }
   };
