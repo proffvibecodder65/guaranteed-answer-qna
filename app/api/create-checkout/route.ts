@@ -1,29 +1,34 @@
 export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 
 import { NextResponse } from 'next/server';
-import Stripe from 'stripe';
 
 export async function POST(req: Request) {
   try {
-    const key = process.env.STRIPE_SECRET_KEY;
-
-    if (!key) {
+    // 1️⃣ Проверяем наличие Stripe key
+    const stripeKey = process.env.STRIPE_SECRET_KEY;
+    if (!stripeKey) {
       throw new Error('STRIPE_SECRET_KEY is not set');
     }
 
-    const stripe = new Stripe(key, {
+    // 2️⃣ Загружаем Stripe ТОЛЬКО при реальном запросе
+    const Stripe = require('stripe');
+    const stripe = new Stripe(stripeKey, {
       apiVersion: '2023-10-16',
     });
 
-    const { question, email, id } = await req.json();
+    // 3️⃣ Получаем данные от клиента
+    const body = await req.json();
+    const { question, email, id } = body;
 
     if (!question || !email || !id) {
       return NextResponse.json(
-        { error: 'Missing fields' },
+        { error: 'Missing required fields' },
         { status: 400 }
       );
     }
 
+    // 4️⃣ Создаём Stripe Checkout Session
     const session = await stripe.checkout.sessions.create({
       mode: 'payment',
       payment_method_types: ['card'],
@@ -35,23 +40,11 @@ export async function POST(req: Request) {
               name: 'Guaranteed Answer',
               description: question,
             },
-            unit_amount: 500,
+            unit_amount: 500, // $5.00
           },
           quantity: 1,
         },
       ],
       success_url: `${process.env.BASE_URL}/success?id=${id}&q=${encodeURIComponent(
         question
-      )}&email=${encodeURIComponent(email)}`,
-      cancel_url: `${process.env.BASE_URL}/`,
-    });
-
-    return NextResponse.json({ url: session.url });
-  } catch (error) {
-    console.error('STRIPE ERROR:', error);
-    return NextResponse.json(
-      { error: 'Stripe error' },
-      { status: 500 }
-    );
-  }
-}
+      )}&email=${encodeUR
