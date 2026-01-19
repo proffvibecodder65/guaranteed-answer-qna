@@ -1,11 +1,28 @@
-import Stripe from 'stripe';
-import { NextResponse } from 'next/server';
+export const runtime = 'nodejs';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
+import { NextResponse } from 'next/server';
+import Stripe from 'stripe';
 
 export async function POST(req: Request) {
   try {
+    const key = process.env.STRIPE_SECRET_KEY;
+
+    if (!key) {
+      throw new Error('STRIPE_SECRET_KEY is not set');
+    }
+
+    const stripe = new Stripe(key, {
+      apiVersion: '2023-10-16',
+    });
+
     const { question, email, id } = await req.json();
+
+    if (!question || !email || !id) {
+      return NextResponse.json(
+        { error: 'Missing fields' },
+        { status: 400 }
+      );
+    }
 
     const session = await stripe.checkout.sessions.create({
       mode: 'payment',
@@ -18,7 +35,7 @@ export async function POST(req: Request) {
               name: 'Guaranteed Answer',
               description: question,
             },
-            unit_amount: 500, // $5.00
+            unit_amount: 500,
           },
           quantity: 1,
         },
@@ -38,4 +55,3 @@ export async function POST(req: Request) {
     );
   }
 }
-
