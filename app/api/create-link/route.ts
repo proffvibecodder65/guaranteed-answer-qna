@@ -5,9 +5,11 @@ import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
 
+type RecipientMap = Record<string, { email: string }>;
+
 export async function POST(request: Request) {
   const body = await request.json();
-  const email = body.email;
+  const email: string | undefined = body?.email;
 
   if (!email) {
     return NextResponse.json(
@@ -18,18 +20,24 @@ export async function POST(request: Request) {
 
   const filePath = path.join(process.cwd(), 'data', 'recipients.json');
 
-  let data = {};
+  let data: RecipientMap = {};
+
   if (fs.existsSync(filePath)) {
-    data = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+    try {
+      data = JSON.parse(fs.readFileSync(filePath, 'utf8')) as RecipientMap;
+    } catch {
+      data = {};
+    }
   }
 
   const id = crypto.randomBytes(4).toString('hex');
+
   data[id] = { email };
 
   fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
 
   return NextResponse.json({
-    link: `http://localhost:3000/ask/${id}`,
+    link: `${process.env.BASE_URL}/ask/${id}`,
   });
 }
 
