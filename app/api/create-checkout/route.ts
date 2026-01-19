@@ -10,13 +10,12 @@ export async function POST(req: Request) {
       throw new Error('STRIPE_SECRET_KEY is not set');
     }
 
-    // ⬇️ КРИТИЧНО: динамический import, а не require
+    // 🔥 dynamic import — безопасно для build
     const StripeModule = await import('stripe');
     const Stripe = StripeModule.default;
 
-    const stripe = new Stripe(stripeKey, {
-      apiVersion: '2023-10-16',
-    });
+    // ✅ БЕЗ apiVersion
+    const stripe = new Stripe(stripeKey);
 
     const { question, email, id } = await req.json();
 
